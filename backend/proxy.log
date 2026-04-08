@@ -1,0 +1,6 @@
+nohup: ignoring input
+2026/04/08 08:39:32 Authorizing with Application Default Credentials
+2026/04/08 08:39:32 [phrasal-bivouac-489706-r8.us-central1.athena-cluster.athena-instance] Listening on 127.0.0.1:5433
+2026/04/08 08:39:32 The proxy has started successfully and is ready for new connections!
+2026/04/08 08:40:03 [phrasal-bivouac-489706-r8.us-central1.athena-cluster.athena-instance] accepted connection from 127.0.0.1:56482
+2026/04/08 08:40:33 [phrasal-bivouac-489706-r8.us-central1.athena-cluster.athena-instance] failed to connect to instance: Dial error: failed to dial (instance URI = "phrasal-bivouac-489706-r8/us-central1/athena-cluster/athena-instance"): dial tcp 10.41.0.2:5433: i/o timeout
