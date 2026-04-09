@@ -1,0 +1,79 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-primary), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+@layer base {
+  :root {
+    --bg-base: #E9EDF0;
+    --bg-surface: #E6E9EF;
+    
+    --accent-red: #FF7272;
+    --accent-blue: #489CC1;
+    --accent-green: #21A87D;
+    --accent-amber: #F5A623;
+    --accent-gold: #E8B84B;
+    --accent-purple: #8B6FD4;
+    
+    --text-primary: #2D3142;
+    --text-secondary: #6B7280;
+    --text-muted: #9CA3AF;
+  }
+}
+
+@layer utilities {
+  .bg-base { background-color: var(--bg-base); }
+  .bg-surface { background-color: var(--bg-surface); }
+  
+  .text-primary { color: var(--text-primary); }
+  .text-secondary { color: var(--text-secondary); }
+  .text-muted { color: var(--text-muted); }
+  
+  .neu-card {
+    background: #E6E9EF;
+    border-radius: 20px;
+    box-shadow:
+      -1px  -1px  1px  rgba(255,255,255,0.60),
+      -20px -20px 40px rgba(255,255,255,1.00),
+       20px  20px 40px rgba(211,219,230,1.00);
+    transition: box-shadow 0.3s ease-in-out;
+  }
+  
+  .neu-inset {
+    background: #E6E9EF;
+    box-shadow:
+      inset -4px -4px 8px rgba(255,255,255,0.80),
+      inset  4px  4px 8px rgba(211,219,230,1.00);
+  }
+  
+  .neu-hover:hover {
+    box-shadow:
+      -2px  -2px  4px  rgba(255,255,255,0.80),
+      -28px -28px 56px rgba(255,255,255,1.00),
+       28px  28px 56px rgba(211,219,230,1.00);
+  }
+}
+
+body {
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-primary), sans-serif;
+  min-height: 100vh;
+  margin: 0;
+  position: relative;
+}
+
+body::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  opacity: 0.03;
+  pointer-events: none;
+  z-index: 50;
+}

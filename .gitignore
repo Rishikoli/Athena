@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+token.json
+ssh_tunnel.log
+*.db
+pg_data/
+alembic/versions/*.py
+!alembic/versions/__init__.py
+
+# Next.js
+frontend/.next/
+frontend/node_modules/
+frontend/out/
+frontend/build/
+frontend/.DS_Store
+frontend/*.tsbuildinfo
+
+# OS
+.DS_Store
+Thumbs.db
+.gemini/

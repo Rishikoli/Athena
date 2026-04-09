@@ -5,11 +5,11 @@ services:
     # Uses pgvector extension natively, simulating AlloyDB vector column capabilities locally
     image: ankane/pgvector:latest
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
+      POSTGRES_USER: aicos_admin
+      POSTGRES_PASSWORD: AthenaPassword123!
       POSTGRES_DB: aicos
     ports:
-      - "5432:5432"
+      - "5434:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
