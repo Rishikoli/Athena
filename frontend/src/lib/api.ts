@@ -41,3 +41,21 @@ export function streamWorkflowTrace(jobId: string, onMessage: (data: any) => voi
   
   return source;
 }
+
+/**
+ * Lists the most recent 10 workflows
+ */
+export async function listWorkflows() {
+  const response = await fetch(`${API_BASE}/workflows/`);
+  if (!response.ok) throw new Error("Failed to list workflows");
+  return response.json();
+}
+
+/**
+ * Fetches full details for a single workflow
+ */
+export async function getWorkflowDetails(jobId: number) {
+  const response = await fetch(`${API_BASE}/workflows/${jobId}`);
+  if (!response.ok) throw new Error("Failed to fetch workflow details");
+  return response.json();
+}

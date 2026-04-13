@@ -3,6 +3,7 @@ from vertexai.language_models import TextEmbeddingInput, TextEmbeddingModel
 from sqlalchemy.orm import Session
 from app.db.models import WorkflowMemory
 from app.core.config import settings
+from google.cloud import discoveryengine_v1 as discoveryengine
 
 import logging
 from tenacity import retry, stop_after_attempt, wait_exponential
@@ -60,10 +61,65 @@ def verify_context(query: str, memories: list[WorkflowMemory]) -> list[WorkflowM
             m.used_count += 1
     return verified
 
+def rerank_memories(query: str, memories: list[WorkflowMemory], top_n: int = 5) -> list[WorkflowMemory]:
+    """
+    Refines initial vector search results using Vertex AI Semantic Ranking.
+    This provides significantly higher precision for complex context.
+    """
+    if not memories:
+        return []
+
+    try:
+        client = discoveryengine.RankServiceClient()
+        # Extract project info - fallback tophrasal-bivouac-489706-r8 if settings missing
+        project_id = getattr(settings, "PROJECT_ID", "phrasal-bivouac-489706-r8")
+        ranking_config = f"projects/{project_id}/locations/global/rankingConfigs/default_ranking_config"
+
+        # Map WorkflowMemory objects to Ranking Records
+        records = [
+            discoveryengine.RankingRecord(
+                id=str(m.id),
+                content=m.content,
+                title=m.meta_data.get("title", "") if m.meta_data else ""
+            ) for m in memories
+        ]
+
+        request = discoveryengine.RankRequest(
+            ranking_config=ranking_config,
+            model="semantic-ranker-512@latest",
+            query=query,
+            records=records,
+            top_n=top_n
+        )
+
+        response = client.rank(request=request)
+        
+        # Re-order the original memory objects based on the ranker's output
+        id_to_mem = {str(m.id): m for m in memories}
+        reranked = []
+        for record in response.records:
+            if record.id in id_to_mem:
+                mem = id_to_mem[record.id]
+                # Attach the relevance score for the verification agent
+                mem.score = record.score 
+                reranked.append(mem)
+        
+        return reranked
+    except Exception as e:
+        logger.warning(f"Semantic Re-ranking failed (falling back to vector score): {e}")
+        # Baseline fallback: Sort by vector score if reranking fails
+        return memories[:top_n]
+
 def get_context(db: Session, query: str) -> str:
     """The main entrypoint for the Orchestrator to fetch active context."""
-    raw_memories = search_memory(db, query, limit=5)
-    verified_memories = verify_context(query, raw_memories)
+    # Step 1: Broad Retrieval (Increased pool for re-ranking)
+    raw_memories = search_memory(db, query, limit=15)
+    
+    # Step 2: Semantic Re-ranking
+    reranked_memories = rerank_memories(query, raw_memories, top_n=5)
+    
+    # Step 3: High-Fidelity Verification
+    verified_memories = verify_context(query, reranked_memories)
     
     db.commit() # Save the used_count increments
     

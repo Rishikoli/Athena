@@ -27,14 +27,15 @@ MemoryAgent = LlmAgent(
 
     Steps:
     1. Call `fetch_memory_context` with the user's query as the search term.
-    2. If results are returned, summarise them into short bullet points.
+    2. If results are returned, prioritise insights from "meeting" sources for 
+       consensus, debates, and final decisions. Summarise into bullet points.
     3. If no results are found, say "No prior context found — proceeding fresh."
     4. Do NOT plan or execute anything. Only retrieve and summarise memory.
 
     Output format:
     ## Memory Briefing
-    - <bullet 1>
-    - <bullet 2>
+    - [Source: <type>] <insight>
+    - ...
     (or "No prior context found.")
     """,
     tools=[fetch_memory_context],

@@ -54,3 +54,10 @@ def stream_workflow(workflow_id: int, db: Session = Depends(get_db)):
 def cancel_workflow(workflow_id: str):
     """Safely halt a runaway or incorrect task."""
     return {"workflow_id": workflow_id, "status": "cancelled"}
+
+@router.post("/test-proactive")
+async def trigger_test_proactive():
+    """Manually triggers the proactive morning briefing for testing/verification."""
+    from app.services.proactive_worker import morning_briefing_job
+    await morning_briefing_job()
+    return {"status": "triggered"}

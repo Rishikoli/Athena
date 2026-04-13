@@ -14,6 +14,7 @@ google-auth-httplib2                       # HTTP transport for Google auth
 google-cloud-logging                       # Cloud Logging (agent trace streaming)
 google-cloud-pubsub                        # Pub/Sub for event-driven triggers
 google-cloud-secret-manager                # Secret Manager for API keys
+google-cloud-discoveryengine              # Vertex AI Agent Builder: Semantic Re-ranking
 
 # ── Database ────────────────────────────────────────────────────
 sqlalchemy==2.0.29
@@ -31,3 +32,6 @@ python-dotenv
 httpx
 youtube-transcript-api                     # YouTube transcript data source
 tenacity
+apscheduler                                # Task scheduling for proactive briefings
+beautifulsoup4                            # HTML parsing
+trafilatura                                # High-quality text extraction from web

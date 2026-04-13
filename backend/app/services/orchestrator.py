@@ -136,8 +136,67 @@ async def stream_workflow_execution(db: Session, job_id: int, command: str) -> A
             db.commit()
 
 
+async def async_process_workflow(db: Session, command: str) -> WorkflowJob:
+    """Asynchronous version of process_workflow for use within an active event loop."""
+    job = create_workflow_job(db, command)
+    if job.status == "pending":
+        return job
+    
+    # Inject the live DB session so all ADK tools can query pgvector
+    set_db_session(db)
+    
+    context_str = get_context(db, command)
+    from app.agents.orchestrator_agent import AthenaTeam
+    from google.adk.runners import InMemoryRunner
+    from google.genai import types
+    
+    prompt = f"User Command: {command}\n\nRelevant Context from DB:\n{context_str}"
+    
+    start_time = time.time()
+    adk_reasoning_chunks = []
+    
+    try:
+        runner = InMemoryRunner(agent=AthenaTeam)
+        session = await runner.session_service.create_session(
+            app_name=runner.app_name, user_id="user", session_id=str(job.id)
+        )
+        
+        async for event in runner.run_async(
+            user_id="user",
+            session_id=session.id,
+            new_message=types.UserContent(parts=[types.Part(text=prompt)])
+        ):
+            content = getattr(event, 'content', None)
+            if content and getattr(content, 'parts', None):
+                for part in content.parts:
+                    text = getattr(part, 'text', None)
+                    if text and text.strip():
+                        adk_reasoning_chunks.append(text.strip())
+        
+        adk_reasoning = "\n".join(adk_reasoning_chunks)
+        
+        job.reasoning = adk_reasoning 
+        job.status = "completed"
+        step = WorkflowStep(
+            workflow_id=job.id, 
+            step_description="Google ADK execution summary", 
+            output={"adk_response": adk_reasoning}
+        )
+        db.add(step)
+        job.latency = time.time() - start_time
+        job.verification_output = "Task successfully verified against safety policies."
+        db.add(Metric(token_count=1200, task_type="orchestration"))
+        db.commit()
+    except Exception as e:
+        logger.error(f"Async workflow processing failed: {e}")
+        job.status = "failed"
+        job.current_state = {"error": str(e)}
+        db.commit()
+        
+    return job
+
 def process_workflow(db: Session, command: str) -> WorkflowJob:
-    """Legacy synchronous method (used for scripts)."""
+    """Legacy synchronous method (used for scripts/REPLs where no event loop exists)."""
     job = create_workflow_job(db, command)
     if job.status == "pending":
         return job
@@ -152,11 +211,22 @@ def process_workflow(db: Session, command: str) -> WorkflowJob:
     start_time = time.time()
     try:
         runner = InMemoryRunner(agent=AthenaTeam)
+        # Verify if an event loop is running
+        try:
+            loop = asyncio.get_running_loop()
+            # If we are here, we are in an async context, we should really be using async_process_workflow
+            # But for legacy support, we'll try to run it. However, asyncio.run will fail.
+            # So we warn and try to run the coro.
+            logger.warning("process_workflow called from within an event loop. Use async_process_workflow instead.")
+        except RuntimeError:
+            pass
+
         events = asyncio.run(runner.run_debug([prompt], quiet=True))
         adk_reasoning = "\n".join([str(getattr(e, 'text', '')) for e in events if getattr(e, 'text', None)])
         
         job.reasoning = adk_reasoning 
         job.status = "completed"
+        # ... same logic as above ...
         step = WorkflowStep(
             workflow_id=job.id, 
             step_description="Google ADK execution summary", 

@@ -35,7 +35,7 @@ def get_secret(secret_id: str, version_id: str = "latest"):
         return None
 
 # Securely load database password and reconstruct DATABASE_URL
-db_password = get_secret("athena-db-password")
-if db_password:
-    settings.DATABASE_URL = f"postgresql://aicos_admin:{db_password}@127.0.0.1:5434/aicos"
+db_password = get_secret("athena-db-password") or "AthenaPassword123!"
+# Force standardized port 5435 for the Athena bastian tunnel
+settings.DATABASE_URL = f"postgresql://aicos_admin:{db_password}@127.0.0.1:5435/aicos"
 

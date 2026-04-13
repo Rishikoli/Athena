@@ -66,5 +66,47 @@ def get_system_temperature(db: Session = Depends(get_db)):
         "status": status,
         "unit": "°F",
         "failures_24h": failures,
-        "pressure_index": round((current_temp - 68) / 32, 2) # 0 to 1 scale roughly
+        "pressure_index": round((current_temp - 68) / 32, 2), # 0 to 1 scale roughly
+        "black_hole_detected": failures > 2
     }
+
+@router.get("/activity")
+def get_activity_feed(db: Session = Depends(get_db)):
+    """Unified activity feed of recent system events for the Reactor Core."""
+    since = datetime.now(timezone.utc) - timedelta(hours=48)
+    jobs = db.query(WorkflowJob).filter(WorkflowJob.created_at >= since).order_by(WorkflowJob.created_at.desc()).limit(10).all()
+    approvals = db.query(Approval).filter(Approval.created_at >= since).order_by(Approval.created_at.desc()).limit(10).all()
+    
+    events = []
+    
+    for j in jobs:
+        # Map statuses for frontend icons
+        status = "success"
+        if j.status == "failed": status = "failed"
+        elif j.status == "pending": status = "blocked"
+        
+        events.append({
+            "time_raw": j.created_at,
+            "time": j.created_at.strftime("%I:%M %p").lower(),
+            "agent": j.agent_type or "Orchestrator",
+            "msg": f"Processed: {j.command[:60]}...",
+            "status": status
+        })
+        
+    for a in approvals:
+        events.append({
+            "time_raw": a.created_at,
+            "time": a.created_at.strftime("%I:%M %p").lower(),
+            "agent": "Verification",
+            "msg": f"Decision Locked: {a.proposed_action.get('intent', 'Action')[:60]}...",
+            "status": "blocked" if a.status == "pending" else "success"
+        })
+        
+    # Sort legacy to newest if needed, or stick to newest first
+    events.sort(key=lambda x: x["time_raw"], reverse=True)
+    
+    # Final cleanup of raw time
+    for e in events:
+        del e["time_raw"]
+        
+    return events[:8]
